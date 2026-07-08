@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MVVM Jetpack Compose</string>
+    <style name="Theme.MVVMJetpackCompose" parent="android:Theme.Material.Light.NoActionBar"/>
+</resources>
