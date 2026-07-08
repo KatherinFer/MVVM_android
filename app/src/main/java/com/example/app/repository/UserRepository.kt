@@ -9,6 +9,8 @@ class UserRepository(private val userDao: UserDao) {
 
     val allUsers: Flow<List<User>> = userDao.getAllUsers()
 
+    suspend fun getUserById(id: Int): User? = userDao.getUserById(id)
+
     suspend fun refreshUsers() {
         // Simula una llamada a API con retraso
         delay(2000)

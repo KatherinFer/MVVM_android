@@ -24,6 +24,9 @@ class UserViewModel(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
 
+    private val _selectedUser = MutableStateFlow<User?>(null)
+    val selectedUser: StateFlow<User?> = _selectedUser
+
     init {
         // Observamos los cambios en la base de datos y filtramos según la búsqueda
         viewModelScope.launch {
@@ -54,6 +57,12 @@ class UserViewModel(
             repository.allUsers.collect { users ->
                 filterUsers(users, newQuery)
             }
+        }
+    }
+
+    fun selectUser(userId: Int) {
+        viewModelScope.launch {
+            _selectedUser.value = repository.getUserById(userId)
         }
     }
 
