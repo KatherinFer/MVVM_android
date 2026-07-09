@@ -3,15 +3,22 @@ package com.example.app.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.app.model.User
+import com.example.app.repository.NetworkException
+import com.example.app.repository.ServerException
 import com.example.app.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.net.SocketTimeoutException
+
+enum class ErrorType {
+    NETWORK, TIMEOUT, SERVER, UNKNOWN
+}
 
 sealed class UiState {
     object Loading : UiState()
     data class Success(val users: List<User>) : UiState()
-    data class Error(val message: String) : UiState()
+    data class Error(val message: String, val type: ErrorType) : UiState()
 }
 
 class UserViewModel(
@@ -28,10 +35,13 @@ class UserViewModel(
     val selectedUser: StateFlow<User?> = _selectedUser
 
     init {
-        // Observamos los cambios en la base de datos y filtramos según la búsqueda
+        // Observamos los cambios en la base de datos
         viewModelScope.launch {
             repository.allUsers.collect { users ->
-                filterUsers(users, _searchQuery.value)
+                // Solo actualizamos a Success si no estamos mostrando un Error fijo
+                if (_uiState.value !is UiState.Error) {
+                    filterUsers(users, _searchQuery.value)
+                }
             }
         }
         loadUsers()
@@ -39,14 +49,22 @@ class UserViewModel(
 
     fun loadUsers() {
         viewModelScope.launch {
-            // No cambiamos a Loading si ya hay datos para evitar parpadeos,
-            // pero podemos hacerlo si queremos mostrar progreso de red.
+            // Siempre pasamos por Loading al reintentar para limpiar el error previo
+            _uiState.value = UiState.Loading
+            
             try {
                 repository.refreshUsers()
+                // Si llegamos aquí, la descarga fue un éxito. 
+                // La UI se actualizará sola a través del Flow observado en init.
             } catch (e: Exception) {
-                if (_uiState.value !is UiState.Success) {
-                    _uiState.value = UiState.Error(e.message ?: "Error de red")
+                val (message, type) = when (e) {
+                    is SocketTimeoutException -> "Error de tiempo: El servidor tardó mucho" to ErrorType.TIMEOUT
+                    is NetworkException -> "Error de red: Sin conexión" to ErrorType.NETWORK
+                    is ServerException -> "Error de servidor: Problema interno" to ErrorType.SERVER
+                    else -> (e.message ?: "Error desconocido") to ErrorType.UNKNOWN
                 }
+                // Establecemos el error de forma fija
+                _uiState.value = UiState.Error(message, type)
             }
         }
     }

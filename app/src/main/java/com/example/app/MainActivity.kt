@@ -11,17 +11,22 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import com.example.app.ui.theme.ProfileBackground
 import com.example.app.ui.theme.ProfilePrimary
 import com.example.app.ui.theme.ProfileSecondary
+import com.example.app.viewmodel.ErrorType
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -124,17 +129,32 @@ fun UserListScreen(
                 }
 
                 is UiState.Error -> {
-                    val message = (uiState as UiState.Error).message
+                    val error = uiState as UiState.Error
+                    val icon = when (error.type) {
+                        ErrorType.NETWORK -> Icons.Default.CloudOff
+                        ErrorType.TIMEOUT -> Icons.Default.WarningAmber
+                        ErrorType.SERVER -> Icons.Default.ErrorOutline
+                        ErrorType.UNKNOWN -> Icons.Default.WarningAmber
+                    }
+                    
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "Error: $message",
-                                color = MaterialTheme.colorScheme.error
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.error
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = error.message,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
                             Button(onClick = { viewModel.loadUsers() }) {
                                 Text("Reintentar")
                             }
